@@ -2,11 +2,11 @@ package user
 
 import (
 	"context"
-	"fmt"
 	"go.uber.org/zap"
 	"webserver/api/user"
 	"webserver/api/user/command"
 	"webserver/api/user/dto"
+	"webserver/errors"
 	"webserver/user/model"
 )
 
@@ -24,7 +24,7 @@ type Service struct {
 
 func (s Service) CreateUser(ctx context.Context, cmd command.CreateUserCommand) (string, error) {
 	if err := cmd.Validation(); err != nil {
-		return "", err
+		return "", errors.Wrap(err, "request was invalid")
 	}
 
 	userToCreate := model.User{} // XXX: create the user object from cmd
@@ -34,7 +34,7 @@ func (s Service) CreateUser(ctx context.Context, cmd command.CreateUserCommand) 
 
 func (s Service) UpdateUser(ctx context.Context, cmd command.UpdateUserCommand) error {
 	if err := cmd.Validation(); err != nil {
-		return err
+		return errors.Wrap(err, "request was invalid")
 	}
 
 	userToUpdate, err := s.repository.GetUser(ctx, cmd.UserID)
@@ -54,7 +54,10 @@ func (s Service) UpdateUser(ctx context.Context, cmd command.UpdateUserCommand) 
 
 func (s Service) GetUser(ctx context.Context, userID string) (*dto.User, error) {
 	if len(userID) == 0 {
-		return nil, fmt.Errorf("invalid user id")
+		err := errors.ErrorBadRequest.New("invalid user id")
+		return nil, errors.AddErrorContext(err, map[string]interface{}{
+			"userID": userID,
+		})
 	}
 
 	resultUser, err := s.repository.GetUser(ctx, userID)

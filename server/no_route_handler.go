@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"net/http"
+	"webserver/errors"
 )
 
 func NoRouteHandler(logger *zap.Logger) gin.HandlerFunc {
@@ -15,7 +16,7 @@ func NoRouteHandler(logger *zap.Logger) gin.HandlerFunc {
 			zap.String("url", request.URL.String()))
 
 		c.JSON(http.StatusNotFound, gin.H{
-			"code":    -1,
+			"code":    errors.ErrRouteNotFound,
 			"message": fmt.Sprintf("no route for request with method: %s, url: %s", request.Method, request.URL.String()),
 			"data":    nil,
 		})

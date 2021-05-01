@@ -5,6 +5,7 @@ import (
 	"go.uber.org/zap"
 	"net/http"
 	"webserver/api"
+	"webserver/errors"
 	"webserver/server/middleware"
 	"webserver/user"
 )
@@ -45,15 +46,22 @@ func (s *webServer) SetupServer() error {
 }
 
 func (s webServer) SetupRoute(httpMethod string, relativePath string, handler api.ServerHandlerFunc) {
-	s.engine.Handle(httpMethod, relativePath, DefaultJSONEncode(handler))
+	s.engine.Handle(httpMethod, relativePath, DefaultJSONEncode(handler, s.logger))
 }
 
-func DefaultJSONEncode(handler api.ServerHandlerFunc) gin.HandlerFunc {
+func DefaultJSONEncode(handler api.ServerHandlerFunc, logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		data, err := handler(c)
 		if err != nil {
+			logger.Error("request failed",
+				zap.String("method", c.Request.Method),
+				zap.String("url", c.Request.URL.String()),
+				zap.String("errorCode", string(errors.GetCode(err))),
+				zap.String("errorMsg", err.Error()),
+				zap.Any("context", errors.GetErrorContext(err)),
+			)
 			c.JSON(http.StatusOK, gin.H{
-				"code":    -1,
+				"code":    errors.GetCode(err),
 				"message": err.Error(),
 				"data":    nil,
 			})

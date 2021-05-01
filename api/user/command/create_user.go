@@ -1,6 +1,8 @@
 package command
 
-import "fmt"
+import (
+	"webserver/errors"
+)
 
 type CreateUserCommand struct {
 	Name string
@@ -9,10 +11,16 @@ type CreateUserCommand struct {
 
 func (c CreateUserCommand) Validation() error {
 	if len(c.Name) == 0 {
-		return fmt.Errorf("invalid user name")
+		err := errors.ErrorBadRequest.New("invalid user name")
+		return errors.AddErrorContext(err, map[string]interface{}{
+			"parameters": c,
+		})
 	}
 	if c.Age <= 0 || c.Age >= 120 {
-		return fmt.Errorf("user age must great than 0 and less than 120")
+		err := errors.ErrorBadRequest.New("invalid user age")
+		return errors.AddErrorContext(err, map[string]interface{}{
+			"parameters": c,
+		})
 	}
 
 	return nil
