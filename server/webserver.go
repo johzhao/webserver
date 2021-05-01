@@ -12,19 +12,19 @@ import (
 	"webserver/user"
 )
 
-func NewServer(userController user.Controller) Server {
-	return Server{
+func NewWebServer(userController user.Controller) api.WebServer {
+	return &webServer{
 		userController: userController,
 	}
 }
 
-type Server struct {
+type webServer struct {
 	engine *gin.Engine
 
 	userController user.Controller
 }
 
-func (s *Server) SetupServer() error {
+func (s *webServer) SetupServer() error {
 	r := gin.Default()
 
 	r.GET("/ping", func(c *gin.Context) {
@@ -40,11 +40,30 @@ func (s *Server) SetupServer() error {
 	return nil
 }
 
-func (s Server) SetupRoute(httpMethod string, relativePath string, handler api.ServerHandlerFunc) {
+func (s webServer) SetupRoute(httpMethod string, relativePath string, handler api.ServerHandlerFunc) {
 	s.engine.Handle(httpMethod, relativePath, DefaultJSONEncode(handler))
 }
 
-func (s Server) RunServer() error {
+func DefaultJSONEncode(handler api.ServerHandlerFunc) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		data, err := handler(c)
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"code":    -1,
+				"message": err.Error(),
+				"data":    nil,
+			})
+		} else {
+			c.JSON(http.StatusOK, gin.H{
+				"code":    0,
+				"message": "success",
+				"data":    data,
+			})
+		}
+	}
+}
+
+func (s webServer) RunServer() error {
 	srv := &http.Server{
 		Addr:    ":8080",
 		Handler: s.engine,
@@ -75,27 +94,8 @@ func (s Server) RunServer() error {
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		//log.Fatal("Server forced to shutdown:", err)
+		//log.Fatal("webServer forced to shutdown:", err)
 	}
 
 	return nil
-}
-
-func DefaultJSONEncode(handler api.ServerHandlerFunc) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		data, err := handler(c)
-		if err != nil {
-			c.JSON(http.StatusOK, gin.H{
-				"code":    -1,
-				"message": err.Error(),
-				"data":    nil,
-			})
-		} else {
-			c.JSON(http.StatusOK, gin.H{
-				"code":    0,
-				"message": "success",
-				"data":    data,
-			})
-		}
-	}
 }

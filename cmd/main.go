@@ -11,7 +11,7 @@ func main() {
 	userService := user.NewUserService(userRepository)
 	userController := user.NewUserController(userService)
 
-	webServer := server.NewServer(userController)
+	webServer := server.NewWebServer(userController)
 	if err := webServer.SetupServer(); err != nil {
 		os.Exit(1)
 	}
