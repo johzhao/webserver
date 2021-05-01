@@ -1,7 +1,8 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
+	"os"
+	"webserver/server"
 	"webserver/user"
 )
 
@@ -10,15 +11,12 @@ func main() {
 	userService := user.NewUserService(userRepository)
 	userController := user.NewUserController(userService)
 
-	r := gin.Default()
-	r.POST("/users", userController.CreateUser)
-	r.PUT("/users/:user_id", userController.UpdateUser)
-	r.GET("/users/:user_id", userController.GetUser)
+	webServer := server.NewServer(userController)
+	if err := webServer.SetupServer(); err != nil {
+		os.Exit(1)
+	}
 
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "pong",
-		})
-	})
-	_ = r.Run()
+	if err := webServer.RunServer(); err != nil {
+		os.Exit(1)
+	}
 }

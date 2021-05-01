@@ -3,6 +3,7 @@ package user
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"webserver/api"
 	"webserver/api/user"
 	"webserver/api/user/command"
 )
@@ -17,66 +18,27 @@ type Controller struct {
 	userService user.Service
 }
 
-func (c Controller) CreateUser(ctx *gin.Context) {
-	cmd := command.CreateUserCommand{} // XXX: make the cmd
-	userID, err := c.userService.CreateUser(ctx, cmd)
-
-	if err != nil {
-		ctx.JSON(http.StatusOK, gin.H{
-			"code":    -1,
-			"message": err.Error(),
-			"data":    nil,
-		})
-	} else {
-		ctx.JSON(http.StatusOK, gin.H{
-			"code":    0,
-			"message": "success",
-			"data": map[string]interface{}{
-				"user_id": userID,
-			},
-		})
-	}
+func (c Controller) SetupRoute(webServer api.WebServer) {
+	webServer.SetupRoute(http.MethodPost, "/users", c.CreateUser)
+	webServer.SetupRoute(http.MethodPut, "/users/:user_id", c.UpdateUser)
+	webServer.SetupRoute(http.MethodGet, "/users/:user_id", c.GetUser)
 }
 
-func (c Controller) UpdateUser(ctx *gin.Context) {
+func (c Controller) CreateUser(ctx *gin.Context) (interface{}, error) {
+	cmd := command.CreateUserCommand{} // XXX: make the cmd
+	return c.userService.CreateUser(ctx, cmd)
+}
+
+func (c Controller) UpdateUser(ctx *gin.Context) (interface{}, error) {
 	userID := ctx.Params.ByName("user_id")
 	cmd := command.UpdateUserCommand{
 		UserID: userID,
 	} // XXX: make the cmd
 	err := c.userService.UpdateUser(ctx, cmd)
-
-	if err != nil {
-		ctx.JSON(http.StatusOK, gin.H{
-			"code":    -1,
-			"message": err.Error(),
-			"data":    nil,
-		})
-	} else {
-		ctx.JSON(http.StatusOK, gin.H{
-			"code":    0,
-			"message": "success",
-			"data":    nil,
-		})
-	}
+	return nil, err
 }
 
-func (c Controller) GetUser(ctx *gin.Context) {
+func (c Controller) GetUser(ctx *gin.Context) (interface{}, error) {
 	userID := ctx.Params.ByName("user_id")
-	dtoUser, err := c.userService.GetUser(ctx, userID)
-
-	if err != nil {
-		ctx.JSON(http.StatusOK, gin.H{
-			"code":    -1,
-			"message": err.Error(),
-			"data":    nil,
-		})
-	} else {
-		ctx.JSON(http.StatusOK, gin.H{
-			"code":    0,
-			"message": "success",
-			"data": map[string]interface{}{
-				"user": dtoUser,
-			},
-		})
-	}
+	return c.userService.GetUser(ctx, userID)
 }

@@ -40,9 +40,10 @@ func (s Service) UpdateUser(ctx context.Context, cmd command.UpdateUserCommand) 
 
 	// XXX: update the user by cmd
 
-	if _, err := s.repository.Save(ctx, userToUpdate); err != nil {
-		return err
-	}
+	//if _, err := s.repository.Save(ctx, userToUpdate); err != nil {
+	//	return err
+	//}
+	_ = userToUpdate
 
 	return nil
 }
