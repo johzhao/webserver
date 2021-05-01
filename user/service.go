@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"fmt"
 	"webserver/api/user"
 	"webserver/api/user/command"
 	"webserver/api/user/dto"
@@ -49,6 +50,10 @@ func (s Service) UpdateUser(ctx context.Context, cmd command.UpdateUserCommand) 
 }
 
 func (s Service) GetUser(ctx context.Context, userID string) (*dto.User, error) {
+	if len(userID) == 0 {
+		return nil, fmt.Errorf("invalid user id")
+	}
+
 	resultUser, err := s.repository.GetUser(ctx, userID)
 	if err != nil {
 		return nil, err
