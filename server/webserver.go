@@ -46,10 +46,10 @@ func (s *webServer) SetupServer() error {
 }
 
 func (s webServer) SetupRoute(httpMethod string, relativePath string, handler api.ServerHandlerFunc) {
-	s.engine.Handle(httpMethod, relativePath, DefaultJSONEncode(handler, s.logger))
+	s.engine.Handle(httpMethod, relativePath, defaultJSONEncode(handler, s.logger))
 }
 
-func DefaultJSONEncode(handler api.ServerHandlerFunc, logger *zap.Logger) gin.HandlerFunc {
+func defaultJSONEncode(handler api.ServerHandlerFunc, logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		data, err := handler(c)
 		if err != nil {
@@ -80,5 +80,5 @@ func (s webServer) RunServer() error {
 		Addr:    ":8080",
 		Handler: s.engine,
 	}
-	return serveGracefulShutdownServer(srv)
+	return serveGracefulShutdownServer(srv, s.logger)
 }

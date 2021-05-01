@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"go.uber.org/zap"
 	"net/http"
 	"os"
 	"os/signal"
@@ -9,10 +10,10 @@ import (
 	"time"
 )
 
-func serveGracefulShutdownServer(srv *http.Server) error {
+func serveGracefulShutdownServer(srv *http.Server, logger *zap.Logger) error {
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			//log.Fatalf("listen: %s\n", err)
+			logger.Error("listen and serve failed", zap.Error(err))
 		}
 	}()
 
@@ -33,7 +34,7 @@ func serveGracefulShutdownServer(srv *http.Server) error {
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		//log.Fatal("webServer forced to shutdown:", err)
+		logger.Error("web server forced to shutdown", zap.Error(err))
 	}
 
 	return nil
