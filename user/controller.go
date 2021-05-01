@@ -2,20 +2,23 @@ package user
 
 import (
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 	"net/http"
 	"webserver/api"
 	"webserver/api/user"
 	"webserver/api/user/command"
 )
 
-func NewUserController(service user.Service) Controller {
+func NewUserController(service user.Service, logger *zap.Logger) Controller {
 	return Controller{
 		userService: service,
+		logger:      logger,
 	}
 }
 
 type Controller struct {
 	userService user.Service
+	logger      *zap.Logger
 }
 
 func (c Controller) SetupRoute(webServer api.WebServer) {

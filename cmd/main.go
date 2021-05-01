@@ -2,19 +2,24 @@ package main
 
 import (
 	"os"
+	logger2 "webserver/logger"
 	"webserver/server"
 	"webserver/user"
 )
 
 func main() {
-	userRepository := user.NewUserRepository()
-	userService := user.NewUserService(userRepository)
-	userController := user.NewUserController(userService)
+	zapLogger := logger2.SetupLogger()
 
-	webServer := server.NewWebServer(userController)
+	userRepository := user.NewUserRepository(zapLogger)
+	userService := user.NewUserService(userRepository, zapLogger)
+	userController := user.NewUserController(userService, zapLogger)
+
+	webServer := server.NewWebServer(zapLogger, userController)
 	if err := webServer.SetupServer(); err != nil {
 		os.Exit(1)
 	}
+
+	zapLogger.Info("start server")
 
 	if err := webServer.RunServer(); err != nil {
 		os.Exit(1)

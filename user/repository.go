@@ -3,14 +3,18 @@ package user
 import (
 	"context"
 	"fmt"
+	"go.uber.org/zap"
 	"webserver/user/model"
 )
 
-func NewUserRepository() Repository {
-	return Repository{}
+func NewUserRepository(logger *zap.Logger) Repository {
+	return Repository{
+		logger: logger,
+	}
 }
 
 type Repository struct {
+	logger *zap.Logger
 }
 
 func (r Repository) Save(ctx context.Context, user *model.User) (string, error) {

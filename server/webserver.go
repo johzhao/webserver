@@ -2,14 +2,16 @@ package server
 
 import (
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 	"net/http"
 	"webserver/api"
 	"webserver/server/middleware"
 	"webserver/user"
 )
 
-func NewWebServer(userController user.Controller) api.WebServer {
+func NewWebServer(logger *zap.Logger, userController user.Controller) api.WebServer {
 	return &webServer{
+		logger:         logger,
 		userController: userController,
 	}
 }
@@ -17,14 +19,15 @@ func NewWebServer(userController user.Controller) api.WebServer {
 type webServer struct {
 	engine *gin.Engine
 
+	logger         *zap.Logger
 	userController user.Controller
 }
 
 func (s *webServer) SetupServer() error {
 	engine := gin.New()
 	engine.Use(
-		middleware.Log(),
-		middleware.Recovery(),
+		middleware.Log(s.logger),
+		middleware.Recovery(s.logger),
 	)
 	s.engine = engine
 
@@ -36,7 +39,7 @@ func (s *webServer) SetupServer() error {
 		})
 	})
 
-	s.engine.NoRoute(NoRouteHandler())
+	s.engine.NoRoute(NoRouteHandler(s.logger))
 
 	return nil
 }

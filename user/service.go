@@ -3,20 +3,23 @@ package user
 import (
 	"context"
 	"fmt"
+	"go.uber.org/zap"
 	"webserver/api/user"
 	"webserver/api/user/command"
 	"webserver/api/user/dto"
 	"webserver/user/model"
 )
 
-func NewUserService(repository Repository) user.Service {
+func NewUserService(repository Repository, logger *zap.Logger) user.Service {
 	return &Service{
 		repository: repository,
+		logger:     logger,
 	}
 }
 
 type Service struct {
 	repository Repository
+	logger     *zap.Logger
 }
 
 func (s Service) CreateUser(ctx context.Context, cmd command.CreateUserCommand) (string, error) {
