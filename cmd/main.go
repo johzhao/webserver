@@ -1,14 +1,15 @@
 package main
 
 import (
+	"go.uber.org/zap"
 	"os"
-	logger2 "webserver/logger"
+	"webserver/logger"
 	"webserver/server"
 	"webserver/user"
 )
 
 func main() {
-	zapLogger := logger2.SetupLogger()
+	zapLogger := logger.SetupLogger()
 
 	userRepository := user.NewUserRepository(zapLogger)
 	userService := user.NewUserService(userRepository, zapLogger)
@@ -16,12 +17,17 @@ func main() {
 
 	webServer := server.NewWebServer(zapLogger, userController)
 	if err := webServer.SetupServer(); err != nil {
+		zapLogger.Info("setup server failed", zap.Error(err))
 		os.Exit(1)
 	}
 
 	zapLogger.Info("start server")
 
-	if err := webServer.RunServer(); err != nil {
+	g := server.MakeGroup()
+	g.Add(webServer.RunServer, webServer.StopServer)
+
+	if err := g.Run(); err != nil {
+		zapLogger.Info("run failed", zap.Error(err))
 		os.Exit(1)
 	}
 }

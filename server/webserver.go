@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"net/http"
@@ -18,8 +19,8 @@ func NewWebServer(logger *zap.Logger, userController user.Controller) api.WebSer
 }
 
 type webServer struct {
-	engine *gin.Engine
-
+	engine         *gin.Engine
+	srv            *http.Server
 	logger         *zap.Logger
 	userController user.Controller
 }
@@ -75,10 +76,18 @@ func defaultJSONEncode(handler api.ServerHandlerFunc, logger *zap.Logger) gin.Ha
 	}
 }
 
-func (s webServer) RunServer() error {
+func (s *webServer) RunServer() error {
 	srv := &http.Server{
 		Addr:    ":8080",
 		Handler: s.engine,
 	}
-	return serveGracefulShutdownServer(srv, s.logger)
+	s.srv = srv
+	return s.srv.ListenAndServe()
+}
+
+//goland:noinspection GoUnusedParameter
+func (s *webServer) StopServer(err error) {
+	s.logger.Info("stop server")
+	_ = s.srv.Shutdown(context.Background())
+	s.srv = nil
 }

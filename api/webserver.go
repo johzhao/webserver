@@ -10,4 +10,5 @@ type WebServer interface {
 	SetupServer() error
 	SetupRoute(httpMethod string, relativePath string, handler ServerHandlerFunc)
 	RunServer() error
+	StopServer(err error)
 }
