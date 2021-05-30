@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"net/http"
@@ -27,7 +28,13 @@ type webServer struct {
 
 func (s *webServer) SetupServer() error {
 	engine := gin.New()
+
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowAllOrigins = true
+	corsConfig.AllowCredentials = true
+
 	engine.Use(
+		cors.New(corsConfig),
 		middleware.Log(s.logger),
 		middleware.Recovery(s.logger),
 	)
