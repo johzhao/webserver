@@ -5,11 +5,17 @@ import (
 	"os"
 	"webserver/logger"
 	"webserver/server"
+	tracerCreator "webserver/tracing/creator"
 	"webserver/user"
 )
 
 func main() {
 	zapLogger := logger.SetupLogger()
+	tracer, err := tracerCreator.NewTracer("webserver", "", zapLogger)
+	if err != nil {
+		os.Exit(1)
+	}
+	defer tracer.Close()
 
 	userRepository := user.NewUserRepository(zapLogger)
 	userService := user.NewUserService(userRepository, zapLogger)
