@@ -3,5 +3,5 @@ package tracing
 type Tracer interface {
 	Close()
 
-	StartSpan(operationName string) Span
+	StartSpan(operationName string, tags map[string]interface{}) Span
 }

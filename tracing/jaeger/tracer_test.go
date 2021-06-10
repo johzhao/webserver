@@ -16,15 +16,20 @@ func TestJaegerTracer(t *testing.T) {
 	}
 	defer jaegerTracer.Close()
 
-	s1 := jaegerTracer.StartSpan("span 1")
+	s1 := jaegerTracer.StartSpan("span 1", map[string]interface{}{
+		"foo": "bar",
+	})
 	defer s1.Finish()
 	time.Sleep(100 * time.Millisecond)
 
-	s2 := jaegerTracer.StartSpan("span 2")
+	s2 := jaegerTracer.StartSpan("span 2", nil)
 	defer s2.Finish()
 	time.Sleep(200 * time.Millisecond)
 
-	s3 := jaegerTracer.StartSpan("span 3")
+	s3 := jaegerTracer.StartSpan("span 3", map[string]interface{}{
+		"service": "user",
+		"method":  "create",
+	})
 	defer s3.Finish()
 	time.Sleep(300 * time.Millisecond)
 }

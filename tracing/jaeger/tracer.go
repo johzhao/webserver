@@ -60,11 +60,15 @@ func (t *tracer) Close() {
 	_ = t.closer.Close()
 }
 
-func (t *tracer) StartSpan(operationName string) tracing.Span {
+func (t *tracer) StartSpan(operationName string, tags map[string]interface{}) tracing.Span {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 
 	opentracingSpan := t.tracer.StartSpan(operationName, opentracing.ChildOf(t.lastSpanContext()))
+	for key, value := range tags {
+		opentracingSpan.SetTag(key, value)
+	}
+
 	jaegerSpan := span{
 		span:     opentracingSpan,
 		finished: t.spanFinished,
