@@ -44,7 +44,7 @@ func Recovery(logger *zap.Logger) gin.HandlerFunc {
 					} else {
 						logger.Error("recovery",
 							zap.Any("error", err),
-							zap.Any("stack", stack))
+							zap.String("stack", string(stack)))
 					}
 				}
 

@@ -5,8 +5,8 @@ import (
 )
 
 type CreateUserCommand struct {
-	Name string
-	Age  int
+	Name string `json:"name"`
+	Age  int    `json:"age"`
 }
 
 func (c CreateUserCommand) Validation() error {
@@ -21,6 +21,18 @@ func (c CreateUserCommand) Validation() error {
 		return errors.AddErrorContext(err, map[string]interface{}{
 			"parameters": c,
 		})
+	}
+
+	return nil
+}
+
+type UpdateUserCommand struct {
+	UserID string `path:"user_id"`
+}
+
+func (c UpdateUserCommand) Validation() error {
+	if len(c.UserID) == 0 {
+		return errors.ErrorBadRequest.New("invalid user id")
 	}
 
 	return nil
