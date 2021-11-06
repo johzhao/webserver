@@ -1,4 +1,4 @@
-package server
+package transport
 
 import (
 	"context"
@@ -15,7 +15,7 @@ type Decoder func(ctx *gin.Context) (interface{}, error)
 
 type Encoder func(ctx *gin.Context, resp interface{}) error
 
-type RouteConfig struct {
+type JsonRouteConfig struct {
 	Method          string
 	Path            string
 	RequestDecoder  Decoder
@@ -24,7 +24,7 @@ type RouteConfig struct {
 	Handler         Handler
 }
 
-func (r RouteConfig) handle(ctx *gin.Context) {
+func (r JsonRouteConfig) handle(ctx *gin.Context) {
 	req, err := r.RequestDecoder(ctx)
 	if err != nil {
 		r.handleError(ctx, err)
@@ -43,7 +43,7 @@ func (r RouteConfig) handle(ctx *gin.Context) {
 	}
 }
 
-func (r RouteConfig) handleError(ctx *gin.Context, err error) {
+func (r JsonRouteConfig) handleError(ctx *gin.Context, err error) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"code":    -1,
 		"message": err.Error(),
@@ -144,44 +144,36 @@ func fillQueryParameter(ctx *gin.Context, toFill reflect.Value) error {
 	return nil
 }
 
-func makeDefaultJsonRequestDecoder(conf *RouteConfig) Decoder {
+func makeDefaultJsonRequestDecoder(conf *JsonRouteConfig) Decoder {
 	return func(ctx *gin.Context) (interface{}, error) {
-		var err error
-		if conf.RequestObject != nil {
-			requestType := reflect.TypeOf(conf.RequestObject)
-			var requestValue reflect.Value
-			if requestType.Kind() == reflect.Ptr {
-				requestValue = reflect.New(requestType.Elem())
-			} else {
-				requestValue = reflect.New(requestType)
-			}
-
-			// get request parameters from request body
-			if err := ctx.ShouldBind(requestValue.Interface()); err != nil {
-				return nil, err
-			}
-
-			// get request parameters and queries from request query
-			if err == nil {
-				err = fillPathParameter(ctx, requestValue)
-				if err != nil {
-					err = fmt.Errorf("request decoder: unmarshal request path failed,  error (%v)", err)
-				}
-
-				//queries := r.URL.Query()
-				err = fillQueryParameter(ctx, requestValue)
-				if err != nil {
-					err = fmt.Errorf("request decoder: unmarshal request query failed,  error (%v)", err)
-				}
-			}
-
-			return requestValue.Elem().Interface(), nil
+		if conf.RequestObject == nil {
+			return nil, nil
 		}
 
-		if err != nil {
+		requestType := reflect.TypeOf(conf.RequestObject)
+		var requestValue reflect.Value
+		if requestType.Kind() == reflect.Ptr {
+			requestValue = reflect.New(requestType.Elem())
+		} else {
+			requestValue = reflect.New(requestType)
+		}
+
+		// get request parameters from request body
+		if err := ctx.ShouldBind(requestValue.Interface()); err != nil {
 			return nil, err
 		}
-		return nil, nil
+
+		// get request parameters from path
+		if err := fillPathParameter(ctx, requestValue); err != nil {
+			return nil, fmt.Errorf("request decoder: unmarshal request path failed,  error (%v)", err)
+		}
+
+		// get request parameters from query parameters
+		if err := fillQueryParameter(ctx, requestValue); err != nil {
+			return nil, fmt.Errorf("request decoder: unmarshal request query failed,  error (%v)", err)
+		}
+
+		return requestValue.Elem().Interface(), nil
 	}
 }
 
@@ -194,17 +186,13 @@ func defaultJsonResponseEncoder(ctx *gin.Context, resp interface{}) error {
 	return nil
 }
 
-func MakeRouteHandler(conf *RouteConfig) gin.HandlerFunc {
+func MakeJsonRouteHandler(conf *JsonRouteConfig) gin.HandlerFunc {
 	if conf.ResponseEncoder == nil {
 		conf.ResponseEncoder = defaultJsonResponseEncoder
 	}
 
 	if conf.RequestDecoder == nil {
 		conf.RequestDecoder = makeDefaultJsonRequestDecoder(conf)
-	}
-
-	if len(conf.Method) == 0 {
-		conf.Method = "POST"
 	}
 
 	return conf.handle

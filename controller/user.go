@@ -1,46 +1,48 @@
-package user
+package controller
 
 import (
 	"context"
 	"fmt"
 	"go.uber.org/zap"
-	"webserver/api"
-	"webserver/api/user"
-	"webserver/api/user/command"
-	"webserver/api/user/query"
-	"webserver/server"
+	"webserver/model/command"
+	"webserver/model/query"
+	"webserver/service"
+	"webserver/transport"
 )
 
-func NewUserController(service user.Service, logger *zap.Logger) Controller {
+func NewUserController(userService service.UserService, logger *zap.Logger) Controller {
 	return Controller{
-		userService: service,
+		userService: userService,
 		logger:      logger,
 	}
 }
 
 type Controller struct {
-	userService user.Service
+	userService service.UserService
 	logger      *zap.Logger
 }
 
-func (c Controller) SetupRoute(webServer api.WebServer) {
-	webServer.AddRoute(&server.RouteConfig{
-		Path:          "/users",
-		RequestObject: command.CreateUserCommand{},
-		Handler:       c.CreateUser,
-	})
-	webServer.AddRoute(&server.RouteConfig{
-		Method:        "PUT",
-		Path:          "/users/:user_id",
-		RequestObject: command.UpdateUserCommand{},
-		Handler:       c.UpdateUser,
-	})
-	webServer.AddRoute(&server.RouteConfig{
-		Method:        "GET",
-		Path:          "/users",
-		RequestObject: query.GetUserQuery{},
-		Handler:       c.GetUser,
-	})
+func (c Controller) Routes() []*transport.JsonRouteConfig {
+	return []*transport.JsonRouteConfig{
+		{
+			Method:        "POST",
+			Path:          "/users",
+			RequestObject: command.CreateUserCommand{},
+			Handler:       c.CreateUser,
+		},
+		{
+			Method:        "PUT",
+			Path:          "/users/:user_id",
+			RequestObject: command.UpdateUserCommand{},
+			Handler:       c.UpdateUser,
+		},
+		{
+			Method:        "GET",
+			Path:          "/users",
+			RequestObject: query.GetUserQuery{},
+			Handler:       c.GetUser,
+		},
+	}
 }
 
 //goland:noinspection GoUnusedParameter

@@ -6,12 +6,18 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"net/http"
-	"webserver/api"
+	"webserver/controller"
 	"webserver/server/middleware"
-	"webserver/user"
+	"webserver/transport"
 )
 
-func NewWebServer(logger *zap.Logger, userController user.Controller) api.WebServer {
+type WebServer interface {
+	SetupServer() error
+	RunServer() error
+	StopServer(err error)
+}
+
+func NewWebServer(logger *zap.Logger, userController controller.Controller) WebServer {
 	return &webServer{
 		logger:         logger,
 		userController: userController,
@@ -22,7 +28,7 @@ type webServer struct {
 	engine         *gin.Engine
 	srv            *http.Server
 	logger         *zap.Logger
-	userController user.Controller
+	userController controller.Controller
 }
 
 func (s *webServer) SetupServer() error {
@@ -39,7 +45,9 @@ func (s *webServer) SetupServer() error {
 	)
 	s.engine = engine
 
-	s.userController.SetupRoute(s)
+	for _, routeConfig := range s.userController.Routes() {
+		s.engine.Handle(routeConfig.Method, routeConfig.Path, transport.MakeJsonRouteHandler(routeConfig))
+	}
 
 	engine.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
@@ -50,10 +58,6 @@ func (s *webServer) SetupServer() error {
 	s.engine.NoRoute(NoRouteHandler(s.logger))
 
 	return nil
-}
-
-func (s webServer) AddRoute(conf *RouteConfig) {
-	s.engine.Handle(conf.Method, conf.Path, MakeRouteHandler(conf))
 }
 
 func (s *webServer) RunServer() error {

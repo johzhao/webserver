@@ -3,10 +3,13 @@ package main
 import (
 	"go.uber.org/zap"
 	"os"
+	"webserver/controller"
+	"webserver/database/repository"
 	"webserver/logger"
 	"webserver/server"
+	"webserver/service"
 	tracerCreator "webserver/tracing/creator"
-	"webserver/user"
+	"webserver/utility"
 )
 
 func main() {
@@ -17,9 +20,9 @@ func main() {
 	}
 	defer tracer.Close()
 
-	userRepository := user.NewUserRepository(zapLogger)
-	userService := user.NewUserService(userRepository, zapLogger)
-	userController := user.NewUserController(userService, zapLogger)
+	userRepository := repository.NewUserRepository(zapLogger)
+	userService := service.NewUserService(userRepository, zapLogger)
+	userController := controller.NewUserController(userService, zapLogger)
 
 	webServer := server.NewWebServer(zapLogger, userController)
 	if err := webServer.SetupServer(); err != nil {
@@ -29,7 +32,7 @@ func main() {
 
 	zapLogger.Info("start server")
 
-	g := server.MakeGroup()
+	g := utility.MakeGroup()
 	g.Add(webServer.RunServer, webServer.StopServer)
 
 	if err := g.Run(); err != nil {

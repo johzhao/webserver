@@ -1,4 +1,4 @@
-package server
+package utility
 
 import (
 	"os"

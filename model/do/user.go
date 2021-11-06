@@ -1,4 +1,4 @@
-package model
+package do
 
 type User struct {
 	ID   string
