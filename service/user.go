@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"go.uber.org/zap"
-	"webserver/database/repository"
+	"webserver/database"
 	"webserver/errors"
 	"webserver/model"
 	"webserver/model/command"
@@ -18,49 +18,61 @@ type UserService interface {
 	GetUser(ctx context.Context, userID string) (*dto.User, error)
 }
 
-func NewUserService(repository repository.Repository, logger *zap.Logger) UserService {
+func NewUserService(logger *zap.Logger, db database.Database) UserService {
 	return &userService{
-		repository: repository,
-		logger:     logger,
+		db:     db,
+		logger: logger,
 	}
 }
 
 type userService struct {
-	repository repository.Repository
-	logger     *zap.Logger
+	db     database.Database
+	logger *zap.Logger
 }
 
-func (s userService) CreateUser(ctx context.Context, cmd command.CreateUserCommand) (string, error) {
+func (s *userService) CreateUser(ctx context.Context, cmd command.CreateUserCommand) (string, error) {
 	if err := cmd.Validation(); err != nil {
 		return "", errors.Wrap(err, "request was invalid")
 	}
 
-	userToCreate := do.User{} // XXX: create the user object from cmd
+	db, err := s.db.BeginTransaction(ctx)
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = db.Rollback() }()
 
-	return s.repository.Save(ctx, &userToCreate)
+	userToCreate := do.User{} // XXX: create the user object from cmd
+	_ = userToCreate
+
+	return db.UserRepository().Save(ctx, &userToCreate)
 }
 
-func (s userService) UpdateUser(ctx context.Context, cmd command.UpdateUserCommand) error {
+func (s *userService) UpdateUser(ctx context.Context, cmd command.UpdateUserCommand) error {
 	if err := cmd.Validation(); err != nil {
 		return errors.Wrap(err, "request was invalid")
 	}
 
-	userToUpdate, err := s.repository.GetUser(ctx, cmd.UserID)
+	db, err := s.db.BeginTransaction(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = db.Rollback() }()
+
+	userToUpdate, err := db.UserRepository().GetUser(ctx, cmd.UserID)
 	if err != nil {
 		return err
 	}
 
-	// XXX: update the user by cmd
+	// TODO: update the user by cmd
 
-	//if _, err := s.repository.Save(ctx, userToUpdate); err != nil {
-	//	return err
-	//}
-	_ = userToUpdate
+	if _, err := db.UserRepository().Save(ctx, userToUpdate); err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func (s userService) GetUser(ctx context.Context, userID string) (*dto.User, error) {
+func (s *userService) GetUser(ctx context.Context, userID string) (*dto.User, error) {
 	if len(userID) == 0 {
 		err := errors.ErrorBadRequest.New("invalid user id")
 		return nil, errors.AddErrorContext(err, map[string]interface{}{
@@ -68,7 +80,7 @@ func (s userService) GetUser(ctx context.Context, userID string) (*dto.User, err
 		})
 	}
 
-	resultUser, err := s.repository.GetUser(ctx, userID)
+	resultUser, err := s.db.UserRepository().GetUser(ctx, userID)
 	if err != nil {
 		return nil, err
 	}

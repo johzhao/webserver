@@ -8,16 +8,16 @@ import (
 	"webserver/service"
 )
 
-func NewUserController(userService service.UserService, logger *zap.Logger) User {
+func NewUserController(logger *zap.Logger, userService service.UserService) User {
 	return User{
-		userService: userService,
 		logger:      logger,
+		userService: userService,
 	}
 }
 
 type User struct {
-	userService service.UserService
 	logger      *zap.Logger
+	userService service.UserService
 }
 
 //goland:noinspection GoUnusedParameter

@@ -4,7 +4,7 @@ import (
 	"go.uber.org/zap"
 	"os"
 	"webserver/controller"
-	"webserver/database/repository"
+	"webserver/database"
 	"webserver/logger"
 	"webserver/server"
 	"webserver/service"
@@ -21,9 +21,15 @@ func main() {
 	}
 	defer tracer.Close()
 
-	userRepository := repository.NewUserRepository(zapLogger)
-	userService := service.NewUserService(userRepository, zapLogger)
-	userController := controller.NewUserController(userService, zapLogger)
+	db := database.NewDatabase(zapLogger)
+	if err := db.Open("mysql", "root:root@tcp(localhost:3306)/db_test?charset=utf8mb4&parseTime=True&loc=Local"); err != nil {
+		zapLogger.Fatal("open database failed",
+			zap.Error(err))
+	}
+	defer func() { _ = db.Close() }()
+
+	userService := service.NewUserService(zapLogger, db)
+	userController := controller.NewUserController(zapLogger, userService)
 	svr := server.NewServer(zapLogger)
 
 	if err := svr.SetupServer(); err != nil {
