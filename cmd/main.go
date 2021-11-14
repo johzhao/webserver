@@ -9,6 +9,7 @@ import (
 	"webserver/server"
 	"webserver/service"
 	tracerCreator "webserver/tracing/creator"
+	"webserver/transport"
 	"webserver/utility"
 )
 
@@ -23,17 +24,19 @@ func main() {
 	userRepository := repository.NewUserRepository(zapLogger)
 	userService := service.NewUserService(userRepository, zapLogger)
 	userController := controller.NewUserController(userService, zapLogger)
+	svr := server.NewServer(zapLogger)
 
-	webServer := server.NewWebServer(zapLogger, userController)
-	if err := webServer.SetupServer(); err != nil {
+	if err := svr.SetupServer(); err != nil {
 		zapLogger.Info("setup server failed", zap.Error(err))
 		os.Exit(1)
 	}
 
+	transport.SetupRouters(svr, userController)
+
 	zapLogger.Info("start server")
 
 	g := utility.MakeGroup()
-	g.Add(webServer.RunServer, webServer.StopServer)
+	g.Add(svr.RunServer, svr.StopServer)
 
 	if err := g.Run(); err != nil {
 		zapLogger.Info("run failed", zap.Error(err))
