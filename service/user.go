@@ -44,7 +44,16 @@ func (s *userService) CreateUser(ctx context.Context, cmd command.CreateUserComm
 	userToCreate := do.User{} // XXX: create the user object from cmd
 	_ = userToCreate
 
-	return db.UserRepository().Save(ctx, &userToCreate)
+	userID, err := db.UserRepository().Save(ctx, &userToCreate)
+	if err != nil {
+		return "", err
+	}
+
+	if err := db.Commit(); err != nil {
+		return "", err
+	}
+
+	return userID, nil
 }
 
 func (s *userService) UpdateUser(ctx context.Context, cmd command.UpdateUserCommand) error {
@@ -66,6 +75,10 @@ func (s *userService) UpdateUser(ctx context.Context, cmd command.UpdateUserComm
 	// TODO: update the user by cmd
 
 	if _, err := db.UserRepository().Save(ctx, userToUpdate); err != nil {
+		return err
+	}
+
+	if err := db.Commit(); err != nil {
 		return err
 	}
 
