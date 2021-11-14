@@ -1,8 +1,11 @@
 package main
 
 import (
+	"flag"
 	"go.uber.org/zap"
+	"log"
 	"os"
+	"webserver/config"
 	"webserver/controller"
 	"webserver/database"
 	"webserver/logger"
@@ -13,26 +16,51 @@ import (
 	"webserver/utility"
 )
 
+var (
+	configFile string
+)
+
+func parseParameters() {
+	flag.StringVar(&configFile, "config", "", "the config file used to launch the service")
+	flag.Parse()
+
+	if len(configFile) == 0 {
+		log.Fatalf("missing config file")
+	}
+}
+
 func main() {
-	zapLogger := logger.SetupLogger()
+	parseParameters()
+
+	configuration, err := config.LoadConfig(configFile)
+	if err != nil {
+		log.Fatalf("load config failed with error: %v", err)
+	}
+
+	zapLogger, err := logger.SetupLogger(configuration.Logger)
+	if err != nil {
+		log.Fatalf("setup logger failed with error: %v", err)
+	}
+
 	tracer, err := tracerCreator.NewTracer("webserver", "", zapLogger)
 	if err != nil {
-		os.Exit(1)
+		zapLogger.Fatal("create tracer failed",
+			zap.Error(err))
 	}
 	defer tracer.Close()
 
-	db := database.NewDatabase(zapLogger)
-	if err := db.Open("mysql", "root:root@tcp(localhost:3306)/db_test?charset=utf8mb4&parseTime=True&loc=Local"); err != nil {
-		zapLogger.Fatal("open database failed",
+	db, err := database.NewDatabase(zapLogger, configuration.DB)
+	if err != nil {
+		zapLogger.Fatal("create database failed",
 			zap.Error(err))
 	}
-	defer func() { _ = db.Close() }()
+	defer db.Close()
 
 	userService := service.NewUserService(zapLogger, db)
 	userController := controller.NewUserController(zapLogger, userService)
 	svr := server.NewServer(zapLogger)
 
-	if err := svr.SetupServer(); err != nil {
+	if err := svr.SetupServer(configuration.Server); err != nil {
 		zapLogger.Info("setup server failed", zap.Error(err))
 		os.Exit(1)
 	}

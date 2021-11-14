@@ -1,15 +1,24 @@
 package logger
 
 import (
+	"fmt"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"os"
+	"webserver/config"
 )
 
-func SetupLogger() *zap.Logger {
+func SetupLogger(config config.Logger) (*zap.Logger, error) {
+	logLevel := zapcore.InfoLevel
+	if err := logLevel.Set(config.Level); err != nil {
+		return nil, fmt.Errorf("set log level failed",
+			zap.String("logLevel", config.Level),
+			zap.Error(err))
+	}
+
 	atomLv := zap.NewAtomicLevel()
-	atomLv.SetLevel(zapcore.InfoLevel)
+	atomLv.SetLevel(logLevel)
 
 	cfg := zap.NewProductionEncoderConfig()
 	cfg.EncodeTime = zapcore.ISO8601TimeEncoder
@@ -18,11 +27,11 @@ func SetupLogger() *zap.Logger {
 	consoleWriter := zapcore.AddSync(os.Stdout)
 
 	fileWriter := zapcore.AddSync(&lumberjack.Logger{
-		Filename:   "./logs/webserver.log", //fmt.Sprintf("/var/log/auto-operation/%s.log", logFileNamePrefix),
-		MaxSize:    500,                    // megabytes
-		MaxBackups: 3,
-		MaxAge:     28,   //days
-		Compress:   true, // disabled by default
+		Filename:   config.Filepath,
+		MaxSize:    config.MaxSize,
+		MaxBackups: config.MaxAge,
+		MaxAge:     config.MaxAge,
+		Compress:   config.Compress,
 	})
 
 	consoleCore := zapcore.NewCore(
@@ -39,5 +48,5 @@ func SetupLogger() *zap.Logger {
 
 	loggerCore := zapcore.NewTee(consoleCore, fileCore)
 
-	return zap.New(loggerCore)
+	return zap.New(loggerCore), nil
 }

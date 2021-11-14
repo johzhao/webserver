@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"net/http"
+	"webserver/config"
 	"webserver/router"
 	"webserver/server/middleware"
 )
@@ -20,9 +21,10 @@ type Server struct {
 	logger *zap.Logger
 	engine *gin.Engine
 	srv    *http.Server
+	config config.Server
 }
 
-func (s *Server) SetupServer() error {
+func (s *Server) SetupServer(config config.Server) error {
 	engine := gin.New()
 	engine.Use(
 		cors.New(s.corsConfig()),
@@ -32,6 +34,7 @@ func (s *Server) SetupServer() error {
 	engine.NoRoute(middleware.NoRouteHandler(s.logger))
 
 	s.engine = engine
+	s.config = config
 
 	return nil
 }
@@ -46,7 +49,7 @@ func (s *Server) corsConfig() cors.Config {
 
 func (s *Server) RunServer() error {
 	srv := &http.Server{
-		Addr:    ":8080", // TODO: get from config
+		Addr:    s.config.Address,
 		Handler: s.engine,
 	}
 	s.srv = srv

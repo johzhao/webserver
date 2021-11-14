@@ -6,6 +6,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
+	"webserver/config"
 	"webserver/database/repository"
 )
 
@@ -17,8 +18,8 @@ type sqlxDatabase struct {
 	execer  sqlx.ExecerContext
 }
 
-func (s *sqlxDatabase) Open(driverName string, dataSourceName string) error {
-	db, err := sqlx.Open(driverName, dataSourceName)
+func (s *sqlxDatabase) Open(config config.DB) error {
+	db, err := sqlx.Open(config.DriverName, config.DataSourceName)
 	if err != nil {
 		return err
 	}
@@ -30,15 +31,14 @@ func (s *sqlxDatabase) Open(driverName string, dataSourceName string) error {
 	return nil
 }
 
-func (s *sqlxDatabase) Close() error {
+func (s *sqlxDatabase) Close() {
 	if s.db != nil {
 		if err := s.db.Close(); err != nil {
-			return err
+			s.logger.Error("close database failed",
+				zap.Error(err))
 		}
-
 		s.db = nil
 	}
-	return nil
 }
 
 func (s *sqlxDatabase) BeginTransaction(ctx context.Context) (Database, error) {

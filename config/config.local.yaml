@@ -1,0 +1,14 @@
+logger:
+  level: INFO
+  filepath: ./logs/webserver.log
+  max_size: 512
+  max_backup: 4
+  max_age: 28
+  compress: true
+
+db:
+  driver_name: mysql
+  data_source_name: root:root@tcp(localhost:3306)/db_test?charset=utf8mb4&parseTime=True&loc=Local
+
+server:
+  address: :8080
