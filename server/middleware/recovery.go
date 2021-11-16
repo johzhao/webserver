@@ -98,7 +98,7 @@ var (
 	slash     = []byte("/")
 )
 
-// source returns a space-trimmed slice of the n'th line.
+// source returns a space-trimmed slice of the nth line.
 func source(lines [][]byte, n int) []byte {
 	n-- // in stack trace, lines are 1-indexed but our array is 0-indexed
 	if n < 0 || n >= len(lines) {
@@ -117,9 +117,9 @@ func function(pc uintptr) []byte {
 	// The name includes the path name to the package, which is unnecessary
 	// since the file name is already included.  Plus, it has center dots.
 	// That is, we see
-	//	runtime/debug.*T·ptrmethod
+	//	runtime/debug.*T·ptr_method
 	// and want
-	//	*T.ptrmethod
+	//	*T.ptr_method
 	// Also the package path might contains dot (e.g. code.google.com/...),
 	// so first eliminate the path prefix
 	if lastSlash := bytes.LastIndex(name, slash); lastSlash >= 0 {

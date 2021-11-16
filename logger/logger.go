@@ -12,9 +12,7 @@ import (
 func SetupLogger(config config.Logger) (*zap.Logger, error) {
 	logLevel := zapcore.InfoLevel
 	if err := logLevel.Set(config.Level); err != nil {
-		return nil, fmt.Errorf("set log level failed",
-			zap.String("logLevel", config.Level),
-			zap.Error(err))
+		return nil, fmt.Errorf("set log level (%s) failed with error: (%v)", config.Level, err)
 	}
 
 	atomLv := zap.NewAtomicLevel()

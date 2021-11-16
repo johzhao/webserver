@@ -117,21 +117,18 @@ func (d *JsonRequestDecoder) setFieldValue(field reflect.Value, value string) er
 	switch field.Kind() {
 	case reflect.String:
 		field.SetString(value)
-		break
 	case reflect.Int, reflect.Int8, reflect.Int32, reflect.Int64:
 		iv, err := strconv.Atoi(value)
 		if err != nil {
 			return fmt.Errorf("failed to convert %v to int", value)
 		}
 		field.SetInt(int64(iv))
-		break
 	case reflect.Float32, reflect.Float64:
 		fv, err := strconv.ParseFloat(value, 64)
 		if err != nil {
 			return fmt.Errorf("failed to convert %v to float", value)
 		}
 		field.SetFloat(fv)
-		break
 	case reflect.Bool:
 		if strings.ToLower(value) == "true" {
 			field.SetBool(true)
@@ -140,7 +137,6 @@ func (d *JsonRequestDecoder) setFieldValue(field reflect.Value, value string) er
 		} else {
 			return fmt.Errorf("boolean field should be one of [true, false], not %v", value)
 		}
-		break
 	default:
 		return fmt.Errorf("unsupported field type: %v", field.Kind())
 	}
