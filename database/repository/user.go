@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/jmoiron/sqlx"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"webserver/model/do"
 )
@@ -27,16 +28,23 @@ type userRepository struct {
 	execer  sqlx.ExecerContext
 }
 
-//goland:noinspection GoUnusedParameter
 func (r *userRepository) Save(ctx context.Context, user *do.User) (string, error) {
-	return "", fmt.Errorf("need implement")
+	// TODO: generate user ID when empty
+	sql := "INSERT INTO `users` (`id`, `name`, `age`) VALUES (?, ?, ?)"
+	_, err := r.execer.ExecContext(ctx, sql, user.ID, user.Name, user.Age)
+	if err != nil {
+		return "", errors.WithMessage(err, "save user failed")
+	}
+
+	return user.ID, nil
 }
 
-//goland:noinspection GoUnusedParameter
 func (r *userRepository) GetUser(ctx context.Context, userID string) (*do.User, error) {
-	return &do.User{
-		ID:   "100",
-		Name: "Username",
-		Age:  40,
-	}, nil
+	sql := "SELECT * FROM `users` WHERE `id`=?"
+	var result do.User
+	if err := r.queryer.QueryRowxContext(ctx, sql, userID).Scan(&result); err != nil {
+		return nil, errors.WithMessage(err, fmt.Sprintf("get user by id %s failed", userID))
+	}
+
+	return &result, nil
 }
