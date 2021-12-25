@@ -2,13 +2,14 @@ package server
 
 import (
 	"context"
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 	"net/http"
 	"webserver/config"
 	"webserver/router"
 	"webserver/server/middleware"
+
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 func NewServer(logger *zap.Logger) Server {
@@ -28,6 +29,7 @@ func (s *Server) SetupServer(config config.Server) error {
 	engine := gin.New()
 	engine.Use(
 		cors.New(s.corsConfig()),
+		middleware.Tracer(),
 		middleware.Log(s.logger),
 		middleware.Recovery(s.logger),
 	)

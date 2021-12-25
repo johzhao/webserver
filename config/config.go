@@ -6,7 +6,7 @@ import (
 )
 
 type Config struct {
-	Logger Logger `yaml:"logger"`
+	Logger Logger `yaml:"logging"`
 	DB     DB     `yaml:"db"`
 	Server Server `yaml:"server"`
 }

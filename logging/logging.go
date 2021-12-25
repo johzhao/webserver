@@ -1,18 +1,34 @@
-package logger
+package logging
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"webserver/config"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
-	"os"
-	"webserver/config"
 )
+
+const TracerIDKey = "tracer-id"
+
+func ContextField(ctx context.Context) []zap.Field {
+	valueRaw := ctx.Value(TracerIDKey)
+	value, ok := valueRaw.(string)
+	if !ok {
+		value = ""
+	}
+
+	return []zap.Field{
+		{Key: TracerIDKey, Type: zapcore.StringType, String: value},
+	}
+}
 
 func SetupLogger(config config.Logger) (*zap.Logger, error) {
 	logLevel := zapcore.InfoLevel
 	if err := logLevel.Set(config.Level); err != nil {
-		return nil, fmt.Errorf("set log level (%s) failed with error: (%v)", config.Level, err)
+		return nil, fmt.Errorf("set log level (%s) failed with error: (%w)", config.Level, err)
 	}
 
 	atomLv := zap.NewAtomicLevel()

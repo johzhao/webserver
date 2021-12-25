@@ -3,9 +3,11 @@ package router
 import (
 	"context"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"webserver/router/decoder"
 	"webserver/router/encoder"
+
+	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 type Endpoint func(ctx context.Context, request interface{}) (interface{}, error)
@@ -16,8 +18,8 @@ type Router interface {
 	HandleRequest(ctx *gin.Context)
 }
 
-func NewJsonRouter(method string, path string, requestObject interface{}, endpoint Endpoint) Router {
-	return NewCustomRouter(method, path, decoder.NewJsonRequestDecoder(requestObject), endpoint, encoder.NewJsonResponseEncoder())
+func NewJSONRouter(logger *zap.Logger, method string, path string, requestObject interface{}, endpoint Endpoint) Router {
+	return NewCustomRouter(method, path, decoder.NewJsonRequestDecoder(requestObject), endpoint, encoder.NewJSONResponseEncoder(logger))
 }
 
 func NewCustomRouter(method string, path string, decoder decoder.RequestDecoder, endpoint Endpoint, encoder encoder.ResponseEncoder) Router {

@@ -2,18 +2,20 @@ package main
 
 import (
 	"flag"
-	"go.uber.org/zap"
 	"log"
+	_ "net/http/pprof"
 	"os"
 	"webserver/config"
 	"webserver/controller"
 	"webserver/database"
-	"webserver/logger"
+	"webserver/logging"
 	"webserver/server"
 	"webserver/service"
 	tracerCreator "webserver/tracing/creator"
 	"webserver/transport"
 	"webserver/utility"
+
+	"go.uber.org/zap"
 )
 
 var (
@@ -37,9 +39,9 @@ func main() {
 		log.Fatalf("load config failed with error: %v", err)
 	}
 
-	zapLogger, err := logger.SetupLogger(configuration.Logger)
+	zapLogger, err := logging.SetupLogger(configuration.Logger)
 	if err != nil {
-		log.Fatalf("setup logger failed with error: %v", err)
+		log.Fatalf("setup logging failed with error: %v", err)
 	}
 
 	tracer, err := tracerCreator.NewTracer("webserver", "", zapLogger)
@@ -65,7 +67,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	transport.SetupRouters(svr, userController)
+	transport.SetupRouters(zapLogger, svr, userController)
 
 	zapLogger.Info("start server")
 

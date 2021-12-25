@@ -7,13 +7,15 @@ import (
 	"webserver/router"
 	"webserver/router/encoder"
 	"webserver/server"
+
+	"go.uber.org/zap"
 )
 
-func SetupRouters(server server.Server, userController controller.User) {
+func SetupRouters(logger *zap.Logger, server server.Server, userController controller.User) {
 	routers := make([]router.Router, 0)
-	routers = append(routers, userRouters(userController)...)
+	routers = append(routers, userRouters(logger, userController)...)
 
-	routers = append(routers, router.NewCustomRouter(http.MethodGet, "/ping", nil, PingHandler, encoder.NewJsonResponseEncoder()))
+	routers = append(routers, router.NewCustomRouter(http.MethodGet, "/ping", nil, PingHandler, encoder.NewJSONResponseEncoder(logger)))
 
 	for _, serviceRouter := range routers {
 		server.HandleRouter(serviceRouter)

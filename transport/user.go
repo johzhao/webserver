@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"go.uber.org/zap"
 	"net/http"
 	"webserver/controller"
 	"webserver/model/command"
@@ -8,11 +9,11 @@ import (
 	"webserver/router"
 )
 
-func userRouters(userController controller.User) []router.Router {
+func userRouters(logger *zap.Logger, userController controller.User) []router.Router {
 	return []router.Router{
-		router.NewJsonRouter(http.MethodPost, "/users", command.CreateUserCommand{}, userController.CreateUser),
-		router.NewJsonRouter(http.MethodPut, "/users/:user_id", command.UpdateUserCommand{}, userController.UpdateUser),
-		router.NewJsonRouter(http.MethodGet, "/users", query.GetUserQuery{}, userController.GetUser),
-		router.NewJsonRouter(http.MethodGet, "/users/fail", nil, userController.FailedTest),
+		router.NewJSONRouter(logger, http.MethodPost, "/users", command.CreateUserCommand{}, userController.CreateUser),
+		router.NewJSONRouter(logger, http.MethodPut, "/users/:user_id", command.UpdateUserCommand{}, userController.UpdateUser),
+		router.NewJSONRouter(logger, http.MethodGet, "/users", query.GetUserQuery{}, userController.GetUser),
+		router.NewJSONRouter(logger, http.MethodGet, "/users/fail", nil, userController.FailedTest),
 	}
 }

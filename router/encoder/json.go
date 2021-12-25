@@ -1,32 +1,38 @@
 package encoder
 
 import (
-	"github.com/gin-gonic/gin"
 	"net/http"
+	"webserver/logging"
+
+	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
-func NewJsonResponseEncoder() ResponseEncoder {
-	return &JsonResponseEncoder{}
-}
-
-type JsonResponseEncoder struct {
-}
-
-func (e *JsonResponseEncoder) ResponseWithData(ctx *gin.Context, data interface{}) error {
-	responseBody := make(map[string]interface{}, 3)
-	responseBody["code"] = 0
-	responseBody["message"] = "success"
-	if data != nil {
-		responseBody["data"] = data
+func NewJSONResponseEncoder(logger *zap.Logger) ResponseEncoder {
+	return &JSONResponseEncoder{
+		logger: logger,
 	}
+}
 
-	ctx.JSON(http.StatusOK, responseBody)
+type JSONResponseEncoder struct {
+	logger *zap.Logger
+}
 
+func (e *JSONResponseEncoder) ResponseWithData(ctx *gin.Context, data interface{}) error {
+	ctx.JSON(http.StatusOK, data)
 	return nil
 }
 
-func (e *JsonResponseEncoder) ResponseWithError(ctx *gin.Context, err error) {
-	ctx.JSON(http.StatusOK, gin.H{
+func (e *JSONResponseEncoder) ResponseWithError(ctx *gin.Context, err error) {
+	e.logger.
+		With(logging.ContextField(ctx)...).
+		Error("request failed",
+			zap.String("method", ctx.Request.Method),
+			zap.String("url", ctx.Request.URL.String()),
+			zap.Error(err),
+		)
+
+	ctx.JSON(http.StatusInternalServerError, gin.H{
 		"code":    -1,
 		"message": err.Error(),
 	})

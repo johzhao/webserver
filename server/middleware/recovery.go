@@ -3,8 +3,6 @@ package middleware
 import (
 	"bytes"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -12,57 +10,86 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"webserver/logging"
+
+	"github.com/gin-gonic/gin"
+	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
 
 func Recovery(logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
-				var brokenPipe bool
-				if ne, ok := err.(*net.OpError); ok {
-					if se, ok := ne.Err.(*os.SyscallError); ok {
-						if strings.Contains(strings.ToLower(se.Error()), "broken pipe") || strings.Contains(strings.ToLower(se.Error()), "connection reset by peer") {
-							brokenPipe = true
-						}
-					}
-				}
-				if logger != nil {
-					stack := stack(3)
-					httpRequest, _ := httputil.DumpRequest(c.Request, false)
-					headers := strings.Split(string(httpRequest), "\r\n")
-					for idx, header := range headers {
-						current := strings.Split(header, ":")
-						if current[0] == "Authorization" {
-							headers[idx] = current[0] + ": *"
-						}
-					}
-
-					if brokenPipe {
-						logger.Error("broken pipe",
-							zap.Any("error", err),
-							zap.Strings("headers", headers))
-					} else {
-						logger.Error("recovery",
-							zap.Any("error", err),
-							zap.String("stack", string(stack)))
-					}
-				}
-
-				if brokenPipe {
-					// If the connection is dead, we can't write a status to it.
-					_ = c.Error(err.(error))
-					c.Abort()
+				if isBrokenPipeError(err) {
+					handleBrokenPipeError(c, logger, err)
 				} else {
-					c.JSON(http.StatusInternalServerError, gin.H{
-						"code":    -1,
-						"message": fmt.Sprintf("%v", err),
-						"data":    nil,
-					})
+					handleRecoveredError(c, logger, err)
 				}
 			}
 		}()
+
 		c.Next()
 	}
+}
+
+func isBrokenPipeError(err interface{}) bool {
+	ne, ok := err.(*net.OpError)
+	if !ok {
+		return false
+	}
+
+	if !errors.As(ne, &os.SyscallError{}) {
+		return false
+	}
+
+	msg := strings.ToLower(ne.Error())
+	if strings.Contains(msg, "broken pipe") || strings.Contains(msg, "connection reset by peer") {
+		return true
+	}
+
+	return false
+}
+
+func handleBrokenPipeError(c *gin.Context, logger *zap.Logger, err interface{}) {
+	httpRequest, _ := httputil.DumpRequest(c.Request, false)
+	headers := strings.Split(string(httpRequest), "\r\n")
+	for idx, header := range headers {
+		current := strings.Split(header, ":")
+		if current[0] == "Authorization" {
+			headers[idx] = current[0] + ": *"
+		}
+	}
+
+	logger.
+		With(logging.ContextField(c)...).
+		Error("broken pipe",
+			zap.Any("error", err),
+			zap.String("method", c.Request.Method),
+			zap.String("URL", c.Request.URL.String()),
+			zap.Strings("headers", headers),
+		)
+
+	// If the connection is dead, we can't write a status to it.
+	_ = c.Error(err.(error))
+	c.Abort()
+}
+
+func handleRecoveredError(c *gin.Context, logger *zap.Logger, err interface{}) {
+	stack := stack(3)
+	logger.
+		With(logging.ContextField(c)...).
+		Error("recovered",
+			zap.Any("error", err),
+			zap.String("method", c.Request.Method),
+			zap.String("URL", c.Request.URL.String()),
+			zap.String("stack", string(stack)),
+		)
+
+	c.JSON(http.StatusInternalServerError, gin.H{
+		"code":    -1,
+		"message": fmt.Sprintf("%v", err),
+	})
 }
 
 func stack(skip int) []byte {
@@ -128,6 +155,6 @@ func function(pc uintptr) []byte {
 	if period := bytes.Index(name, dot); period >= 0 {
 		name = name[period+1:]
 	}
-	name = bytes.Replace(name, centerDot, dot, -1)
+	name = bytes.ReplaceAll(name, centerDot, dot)
 	return name
 }
